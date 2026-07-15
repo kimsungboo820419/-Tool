@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>개략공기 산정 시스템</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', sans-serif; background: #f4f6f9; margin: 0; padding: 20px; color: #222; }
+  .container { max-width: 1200px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden; }
+  .header { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff; padding: 20px 30px; }
+  .header h1 { margin: 0; font-size: 22px; }
+  .header p { margin: 5px 0 0; font-size: 13px; opacity: 0.9; }
+  .content { padding: 25px 30px; }
+  .section-title { background: #1e3a8a; color: #fff; padding: 8px 14px; font-weight: bold; font-size: 14px; margin: 20px 0 10px; border-radius: 4px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .field { display: flex; flex-direction: column; }
+  .field label { font-size: 12px; font-weight: bold; color: #444; margin-bottom: 4px; }
+  .field input, .field select { padding: 7px 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; background: #fff; }
+  .field input:focus, .field select:focus { outline: none; border-color: #2563eb; }
+  .btn-row { text-align: center; margin: 25px 0 10px; }
+  .btn { padding: 11px 40px; font-size: 15px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; margin: 0 5px; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1e40af; }
+  .btn-reset { background: #6b7280; color: #fff; }
+  .btn-reset:hover { background: #4b5563; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: center; }
+  th { background: #e5e7eb; font-weight: bold; }
+  td.label { background: #f9fafb; font-weight: bold; text-align: left; }
+  td.value { font-weight: bold; color: #1e3a8a; }
+  td.total { background: #1e3a8a; color: #fff; font-weight: bold; font-size: 15px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 15px; font-size: 12px; margin: 15px 0; border-radius: 4px; }
+  .summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 20px; }
+  .summary-card { background: #f3f4f6; padding: 12px; border-radius: 6px; text-align: center; border-top: 3px solid #2563eb; }
+  .summary-card .label { font-size: 11px; color: #666; margin-bottom: 5px; }
+  .summary-card .value { font-size: 20px; font-weight: bold; color: #1e3a8a; }
+  .summary-card.total-card { background: #1e3a8a; color: #fff; border-top-color: #fbbf24; }
+  .summary-card.total-card .label, .summary-card.total-card .value { color: #fff; }
+  .badge { display: inline-block; background: #fbbf24; color: #78350f; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; margin-left: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>개략공기 산정 시스템 <span class="badge">v6</span></h1>
+    <p>Mastern Schedule Analysis Tool · 초기 사업 참여 타당성 검토용 (유사 실적 DATA 기반)</p>
+  </div>
+
+  <div class="content">
+    <div class="section-title">■ 입력 (INPUT)</div>
+
+    <div class="grid">
+      <div class="field">
+        <label>건물용도</label>
+        <select id="buildingType">
+          <option value="주거시설">주거시설</option>
+          <option value="원룸형">주거시설(원룸형)</option>
+          <option value="업무시설">업무시설/지산</option>
+          <option value="드라이브인">드라이브인(지산)</option>
+          <option value="물류센터">물류센터</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>지하공법</label>
+        <select id="method">
+          <option value="순타">순타</option>
+          <option value="up-up">up-up</option>
+          <option value="semi">semi T/D</option>
+          <option value="down-up">down-up</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>기초공법</label>
+        <select id="foundation">
+          <option value="PHC">PHC 파일기초</option>
+          <option value="지내력">지내력기초</option>
+          <option value="없음">파일 無</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>파일 길이</label>
+        <select id="pileLength">
+          <option value="15">15m 이하</option>
+          <option value="30">16~30m</option>
+          <option value="31">30m 초과</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>지역조건</label>
+        <select id="area">
+          <option value="도심지">도심지</option>
+          <option value="택지">택지 등</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>전이구조</label>
+        <select id="transfer">
+          <option value="有">전이구조 有</option>
+          <option value="無">전이구조 無</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>대지면적 (M²)</label>
+        <input type="number" id="siteArea" value="5000">
+      </div>
+      <div class="field">
+        <label>연암이상 비율 (0~1)</label>
+        <input type="number" id="rockRatio" value="0.3" step="0.05" min="0" max="1">
+      </div>
+    </div>
+
+    <div class="section-title">■ 지하</div>
+    <div class="grid">
+      <div class="field"><label>지하 전체 층수</label><input type="number" id="bFloors" value="5"></div>
+      <div class="field"><label>H:4.5m 이상 층수</label><input type="number" id="bHighFloors" value="1"></div>
+      <div class="field"><label>굴착깊이 (m)</label><input type="number" id="digDepth" value="20"></div>
+      <div class="field"><label>대지 가로 (m, 선택)</label><input type="number" id="width" value="0"></div>
+    </div>
+
+    <div class="section-title">■ 지상</div>
+    <div class="grid">
+      <div class="field"><label>지상 전체 층수</label><input type="number" id="gFloors" value="30"></div>
+      <div class="field"><label>포디움/필로티 층수</label><input type="number" id="podium" value="1"></div>
+      <div class="field"><label>피난층/PIT 층수</label><input type="number" id="pit" value="1"></div>
+      <div class="field"><label>층고변화 층수</label><input type="number" id="changeFloors" value="0"></div>
+    </div>
+
+    <div class="section-title">■ 기타 옵션</div>
+    <div class="grid-3">
+      <div class="field">
+        <label>T/C 하계휴가 반영</label>
+        <select id="summerBreak"><option value="1">반영 (5일/년)</option><option value="0">미반영</option></select>
+      </div>
+      <div class="field">
+        <label>연말연시 안전관리</label>
+        <select id="yearEnd"><option value="1">반영 (7일/년)</option><option value="0">미반영</option></select>
+      </div>
+      <div class="field">
+        <label>대지 세로 (m, 선택)</label>
+        <input type="number" id="height" value="0">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="calculate()">공기 산정</button>
+      <button class="btn btn-reset" onclick="location.reload()">초기화</button>
+    </div>
+
+    <div id="summaryBox" style="display:none;">
+      <div class="section-title">■ 공정별 개산 공기 (개월)</div>
+      <div class="summary">
+        <div class="summary-card"><div class="label">가설/부지정리</div><div class="value" id="s1">-</div></div>
+        <div class="summary-card"><div class="label">흙막이/토공사</div><div class="value" id="s2">-</div></div>
+        <div class="summary-card"><div class="label">지하/지상 골조</div><div class="value" id="s3">-</div></div>
+        <div class="summary-card"><div class="label">내/외부 마감</div><div class="value" id="s4">-</div></div>
+        <div class="summary-card"><div class="label">준공준비 등</div><div class="value" id="s5">-</div></div>
+        <div class="summary-card total-card"><div class="label">전체 공기</div><div class="value" id="sTotal">-</div></div>
+      </div>
+    </div>
+
+    <div id="resultBox" style="display:none;">
+      <div class="section-title">■ 공기 산정 상세표</div>
+      <table>
+        <thead>
+          <tr><th style="width:15%">공정</th><th style="width:25%">구분</th><th style="width:15%">개산공기 (일)</th><th>산출근거</th></tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+      <div class="note">
+        ※ 본 산정 결과는 초기 사업 참여 타당성 검토용이며, 실제 상세공정 검토와는 차이가 있을 수 있습니다.<br>
+        ※ 도심지 토공사 가동율 <b>75%</b> / CIP 가동율 <b>75%</b> 적용.<br>
+        ※ 흙막이 (CIP+차수) = CIP 공기(가동율 75% 반영) + 차수공사 <b>15일</b>.<br>
+        ※ 지상 기준층 산정식: <b>지상 전체층수 − 포디움 − 셋팅 1개층 − 층고변화층 − 최상층 1개층</b><br>
+        ※ 지상CP제외(Semi T/D 이상): <b>-75일</b>, 지상 최상층: <b>기준층 사이클 + 15일</b>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const URBAN_OP_RATE = 0.75;
+const CIP_OP_RATE = 0.75;
+const WATER_CUTOFF_DAYS = 15;
+const SEMI_TD_REDUCTION = -75;
+const TOP_FLOOR_EXTRA = 15;
+
+function calculate() {
+  const bt = document.getElementById('buildingType').value;
+  const method = document.getElementById('method').value;
+  const foundation = document.getElementById('foundation').value;
+  const pileLen = document.getElementById('pileLength').value;
+  const area = document.getElementById('area').value;
+  const transfer = document.getElementById('transfer').value;
+  const siteArea = +document.getElementById('siteArea').value;
+  const sitePyeong = siteArea / 3.3058;
+  const rockRatio = +document.getElementById('rockRatio').value;
+  const bFloors = +document.getElementById('bFloors').value;
+  const bHighFloors = +document.getElementById('bHighFloors').value;
+  const digDepth = +document.getElementById('digDepth').value;
+  const gFloors = +document.getElementById('gFloors').value;
+  const podium = +document.getElementById('podium').value;
+  const pit = +document.getElementById('pit').value;
+  const changeFloors = +document.getElementById('changeFloors').value;
+  const w = +document.getElementById('width').value;
+  const h = +document.getElementById('height').value;
+  const summerBreak = +document.getElementById('summerBreak').value;
+  const yearEnd = +document.getElementById('yearEnd').value;
+
+  const rows = [];
+  const opRate = area === '도심지' ? URBAN_OP_RATE : 1.0;
+
+  const setup = 30;
+  rows.push(['가설/부지정리', '가설/동원', setup, '기본 1개월']);
+
+  let perimeter;
+  if (w > 0 && h > 0) perimeter = 2 * (w + h);
+  else perimeter = 4 * Math.sqrt(siteArea);
+  const cipVolume = perimeter * digDepth;
+  const cipMachines = Math.max(1, Math.ceil(sitePyeong / 1500));
+  const cipDaysRaw = Math.ceil(cipVolume / (150 * cipMachines) / CIP_OP_RATE);
+  const cipDays = cipDaysRaw + WATER_CUTOFF_DAYS;
+  rows.push(['흙막이/토공사', '흙막이 (CIP+차수)', cipDays,
+    `CIP: 둘레 ${perimeter.toFixed(0)}M × 깊이 ${digDepth}M = ${cipVolume.toFixed(0)}M / (150M/일 × ${cipMachines}대) / 가동율 ${(CIP_OP_RATE*100).toFixed(0)}% = ${cipDaysRaw}일 + 차수 ${WATER_CUTOFF_DAYS}일`]);
+
+  let pileDays = 0;
+  if (foundation === 'PHC') {
+    const pileMap = { '15': 24, '30': 44, '31': 64 };
+    pileDays = pileMap[pileLen] || 24;
+    rows.push(['흙막이/토공사', 'PHC 파일공사', pileDays, `파일길이 기준 소요일 (직타)`]);
+  }
+
+  const digVolume = siteArea * digDepth;
+  const soilVol = digVolume * (1 - rockRatio);
+  const rockVol = digVolume * rockRatio;
+  const soilProd = method === '순타' ? 750 : 600;
+  const soilDays = Math.ceil(soilVol / soilProd / opRate);
+  const rockDays = Math.ceil(rockVol / 250 / opRate);
+  const digDays = soilDays + rockDays;
+  rows.push(['흙막이/토공사', '터파기', digDays,
+    `토사 ${soilVol.toFixed(0)}M³ / ${soilProd}M³/일 + 연암 ${rockVol.toFixed(0)}M³ / 250M³/일 (가동율 ${(opRate*100).toFixed(0)}%)`]);
+
+  const foundationDays = 20;
+  let bFloorDays;
+  if (method === '순타' || method === 'up-up') {
+    bFloorDays = bHighFloors * 45 + (bFloors - bHighFloors) * 30;
+  } else {
+    bFloorDays = bHighFloors * 35 + (bFloors - bHighFloors) * 20;
+  }
+  const basementDays = foundationDays + bFloorDays;
+  rows.push(['지하/지상 골조', '기초', foundationDays, '기초 기본 20일']);
+  rows.push(['지하/지상 골조', `지하골조 (${method})`, bFloorDays,
+    `B ${bFloors}층 (H4.5M이상 ${bHighFloors}층) × 층별 소요일`]);
+
+  let semiTdReduction = 0;
+  if (method === 'semi' || method === 'down-up') {
+    semiTdReduction = SEMI_TD_REDUCTION;
+    rows.push(['지하/지상 골조', '지상CP제외 (Semi T/D 이상)', semiTdReduction, '터파기~지하골조 기간 內 반영 (-75일)']);
+  }
+
+  const podiumDays = podium * 30;
+  const transferDays = transfer === '有' ? 30 : 0;
+
+  let setDays;
+  if (bt === '주거시설' || bt === '원룸형') setDays = 90;
+  else if (bt === '업무시설') setDays = 70;
+  else if (bt === '드라이브인') setDays = 100;
+  else setDays = 90;
+
+  let cycle;
+  if (bt === '주거시설' || bt === '원룸형') {
+    cycle = gFloors >= 36 ? 7.5 : 9.5;
+  } else if (bt === '업무시설') cycle = 18;
+  else if (bt === '드라이브인') cycle = 27;
+  else cycle = 15;
+
+  const baseFloorCount = Math.max(0, gFloors - podium - 1 - changeFloors - 1);
+  const baseDays = Math.round(baseFloorCount * cycle);
+  const changeDays = changeFloors * (cycle + 7);
+  const topDays = Math.round(cycle + TOP_FLOOR_EXTRA);
+  const pitDays = pit * cycle;
+
+  const gDays = podiumDays + transferDays + setDays + baseDays + changeDays + topDays + pitDays;
+
+  rows.push(['지하/지상 골조', '지상 - 포디움', podiumDays, `${podium}층 × 30일/층`]);
+  if (transferDays > 0) rows.push(['지하/지상 골조', '지상 - 전이층', transferDays, '30일/층']);
+  rows.push(['지하/지상 골조', '지상 - 셋팅층', setDays, `${bt} 기준 (1개층 셋팅)`]);
+  rows.push(['지하/지상 골조', '지상 - 기준층', baseDays,
+    `(${gFloors} − ${podium} − 1(셋팅) − ${changeFloors}(층고변화) − 1(최상층)) = ${baseFloorCount}층 × ${cycle}일/층`]);
+  if (changeDays > 0) rows.push(['지하/지상 골조', '지상 - 층고변화층', changeDays, `${changeFloors}층 × (기준 ${cycle}일 + 7일)`]);
+  rows.push(['지하/지상 골조', '지상 - 최상층', topDays, `기준층 ${cycle}일 + 15일`]);
+  if (pitDays > 0) rows.push(['지하/지상 골조', '지상 - PIT/피난층', pitDays, `${pit}층 × ${cycle}일`]);
+
+  const finishMonths = (bt === '주거시설') ? 8 : 7;
+  const finishDays = finishMonths * 30;
+  rows.push(['내/외부 마감', '마감', finishDays, `${finishMonths}개월`]);
+
+  const qualityMonths = (bt === '주거시설' || bt === '물류센터') ? 2 : 1;
+  const qualityDays = qualityMonths * 30;
+  rows.push(['준공준비 등', '품질/준공준비', qualityDays, `${qualityMonths}개월`]);
+
+  const provisional = setup + cipDays + pileDays + digDays + basementDays + semiTdReduction + gDays + finishDays + qualityDays;
+  const years = Math.max(1, Math.ceil(provisional / 365));
+  const summerDays = summerBreak ? 5 * years : 0;
+  const yearEndDays = yearEnd ? 7 * years : 0;
+  if (summerDays) rows.push(['준공준비 등', 'T/C 하계휴가', summerDays, `5일/년 × ${years}년`]);
+  if (yearEndDays) rows.push(['준공준비 등', '연말연시 안전관리', yearEndDays, `7일/년 × ${years}년`]);
+
+  const total = provisional + summerDays + yearEndDays;
+
+  const cat = {'가설/부지정리':0,'흙막이/토공사':0,'지하/지상 골조':0,'내/외부 마감':0,'준공준비 등':0};
+  rows.forEach(r => { cat[r[0]] += r[2]; });
+
+  const body = document.getElementById('resultBody');
+  body.innerHTML = '';
+  let lastCat = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const catCell = r[0] !== lastCat ? `<td class="label">${r[0]}</td>` : '<td class="label"></td>';
+    lastCat = r[0];
+    tr.innerHTML = `${catCell}<td>${r[1]}[2]}</td><td style="text-align:left;font-size:12px;"</td><td style="text-align:left;font-size:12px;">${r[3]}</td>`;
+    body.appendChild(tr);
+  });
+  const </td>`;
+    body.appendChild(tr);
+  });
+  const tota['가설/부지정리']/30).toFixed(1);
+  document.getElementByI</script>
+</body>
+</html>
